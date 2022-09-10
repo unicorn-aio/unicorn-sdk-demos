@@ -1,2 +1,3 @@
+requests
 unicorn-sdk
 loguru

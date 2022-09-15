@@ -18,14 +18,18 @@ proxies = {
 }
 
 session = Session()
-session.config_for_kasada({
-    'api.eql.xyz': {
-        'POST': [
-            '/login_or_anything_blabla',
-            '/api/auth/*'
-        ]
-    }
-})
+session.config_for_kasada(
+    {
+        'api.eql.xyz': {
+            'POST': [
+                '/login_or_anything_blabla',
+                '/api/auth/*'
+            ]
+        },
+    },
+    use_cd=2,
+    timezone_info="GMT+0800 (中国标准时间)"
+)
 
 orgin = "https://api.eql.xyz"
 

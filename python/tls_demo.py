@@ -1,11 +1,14 @@
+import os
+
+from dotenv import load_dotenv
 from loguru import logger
 
 from unicornsdk import UnicornSdk, TlsSession
 
-access_token = "your_access_token"
-UnicornSdk.auth(access_token)
+load_dotenv(verbose=True)
+UnicornSdk.auth(os.environ.get("ACCESS_TOKEN"))
 
-cur_proxyuri = "http://user:password@host:port"
+cur_proxyuri = os.environ.get("PROXY_URI")
 proxies = {
     "http": cur_proxyuri,
     "https": cur_proxyuri,

@@ -1,3 +1,4 @@
 requests
 unicorn-sdk
 loguru
+python-dotenv

@@ -2,3 +2,4 @@ requests
 unicorn-sdk
 loguru
 python-dotenv
+bs4

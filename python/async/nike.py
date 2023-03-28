@@ -1,13 +1,11 @@
-"""
-pyinstaller -F nike_ct_gen.py -n nike_ct_gen  --key L88V*7z$8x3pq6
-"""
-
 import asyncio
 import base64
 import json
 import os
 import time
 from datetime import datetime
+
+import requests
 import urllib3
 from pathlib import Path
 import sys
@@ -17,6 +15,7 @@ import random
 from aiohttp import ClientHttpProxyError, ServerDisconnectedError
 from dotenv import load_dotenv
 from requests.exceptions import ProxyError
+from tenacity import stop_after_attempt, retry, retry_if_exception_type
 
 urllib3.disable_warnings()
 
@@ -29,7 +28,7 @@ from unicornsdk_async import UnicornSdkAsync, PlatForm
 # set auth token for the sdk
 load_dotenv(verbose=True)
 UnicornSdkAsync.auth(os.environ.get("ACCESS_TOKEN"))
-UnicornSdkAsync.config_sdk(api_url="https://dev.unicorn-bot.com")
+# UnicornSdkAsync.config_sdk(api_url="https://dev.unicorn-bot.com")
 # UnicornSdkAsync.config_sdk(api_url="http://127.0.0.1:9000")
 
 
@@ -81,7 +80,7 @@ class Task:
         self.ua = ua
         self.client = FuturesSession()
         self.proxies = None
-        self.accept_language = "en-US,en;q=0.9"
+        self.accept_language = "de-DE,de;q=0.9"
         # zh-CN,zh;q=0.9,en;q=0.8
         self.platform = PlatForm.WINDOWS
         self.device_session = UnicornSdkAsync.create_device_session(idx, self.platform)
@@ -160,6 +159,10 @@ class Task:
         self.proxy = proxy
         self.proxies = self.get_proxys(proxy)
 
+    @retry(reraise=True,
+           stop=stop_after_attempt(3),
+           retry=retry_if_exception_type((requests.exceptions.Timeout, requests.exceptions.ProxyError))
+           )
     async def req_ipsjs(self, ips_url):
         logger.debug(f"testid_{self.idx} 请求 ips.js ...")
         resp = await asyncio.wrap_future(self.client.get(ips_url, headers={
@@ -175,6 +178,10 @@ class Task:
             raise ErrEmptyIPS()
         return ipsjs
 
+    @retry(reraise=True,
+           stop=stop_after_attempt(3),
+           retry=retry_if_exception_type((requests.exceptions.Timeout, requests.exceptions.ProxyError))
+           )
     async def req_tl(self, kpparam):
         logger.debug(f"testid_{self.idx} 请求 tl ...")
         tl_url = f"{orgin}/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/tl"
@@ -201,6 +208,10 @@ class Task:
             raise ErrEmptyTL()
         return resp
 
+    @retry(reraise=True,
+           stop=stop_after_attempt(3),
+           retry=retry_if_exception_type((requests.exceptions.Timeout, requests.exceptions.ProxyError))
+           )
     async def req_fp(self, recheck=False):
         fp_url = f"{orgin}/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp"
         logger.debug(f"testid_{self.idx} 请求 fp ... {fp_url}")
@@ -219,6 +230,8 @@ class Task:
                 raise ErrProxyEmptyFP()
             else:
                 raise ErrEmptyFP()
+        if resp.status_code == 403:
+            raise Exception(f"Fp:{resp.status_code}")
         return resp
 
     async def solve_ct(self):
@@ -258,8 +271,9 @@ class Task:
         return x_kpsdk_ct, x_kpsdk_st, st_diff
 
     def save_ips(self):
-        with open(f"z:/ips-{self.platform}-{now_time_str()}.js", "wb") as f:
-            f.write(self.ips_content)
+        if self.ips_content:
+            with open(f"z:/ips-{self.platform}-{now_time_str()}_{self.idx}", "wb") as f:
+                f.write(self.ips_content)
 
     def save_fp(self):
         with open(f"z:/fp-{self.platform}-{now_time_str()}.js", "wb") as f:
@@ -296,6 +310,7 @@ async def single_task(task_id, model_id=None, ua=None):
             task.save_ips()
             raise
         finally:
+            # task.save_fp()
             # task.save_ips()
             pass
 
@@ -381,8 +396,8 @@ async def main():
     Task.load_proxys("./proxys.txt")
 
     # await test_models(50)
-    await single_task(0)
-    # await muti_task_test(10)
+    await single_task(0, ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36")
+    # await muti_task_test(50)
     # await test_uas(100)
 
     # deinitsdk

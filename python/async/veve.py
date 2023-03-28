@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import random
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -186,17 +187,25 @@ class Veve:
         resp = await asyncio.wrap_future(self.client.post(
             send_url,
             headers={
-                "accept": "*/*",
-                "content-type": "application/json",
-                "accept-encoding": "gzip, deflate, br",
-                "accept-language": "en-gb",
-                "client-name": "veve-web-wallet",
-                "client-version": "1.2.9",
-                "referer": f"{self.orgin}/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp",
-                "origin": "https://omi.veve.me",
+                "client-version": "1.237.0",
+                "cache-control": "no-cache,no-store",
+                "client-name": "veve-app-ios",
                 "user-agent": self.useragent,
+                "client-model": self.client_model,
+                "client-brand": "apple",
                 "x-kpsdk-ct": kpparam["x_kpsdk_ct"],
                 "x-kpsdk-cd": kpparam["x_kpsdk_cd"],
+                "x-kpsdk-v": self.x_kpsdk_v,
+                "accept-language": "en-gb",
+                "client-installer": "appstore",
+                "client-manufacturer": "apple",
+                "accept": "application/json, text/plain, */*",
+                "content-type": "application/json",
+                "client-carrier": "unknown",
+                "accept-encoding": "gzip, deflate, br",
+                # "referer": f"{self.orgin}/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp",
+                # "origin": "https://omi.veve.me",
+                "client-id": self.client_id,
             },
             json={"email": email},
             proxies=self.get_proxys(), verify=False,
@@ -323,16 +332,15 @@ async def main():
 
     veve = Veve("veve_testid", cur_proxyuri=os.environ.get("PROXY_URI"))
 
-    if (not veve.load_session()):
+    if (not veve.load_session() or not veve.device_session.XSESSIONDATA):
         await veve.init_sesion()
 
     await veve.refresh_ct_if_need()
+    veve.save_session()
 
-    # test get AppMetaInfo
     await test_AppMetaInfo(veve)
     # await test_if_ct_could_last_long(veve)
-
-    veve.save_session()
+    # await veve.req_post_api_auth_totp_send()
 
     # deinitsdk
     await UnicornSdkAsync.deinit()
